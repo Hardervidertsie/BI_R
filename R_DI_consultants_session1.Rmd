@@ -1,0 +1,526 @@
+---
+title: "R for DI consultants"
+author: "Steven Wink"
+date: "25 mei 2016"
+output: html_document
+---
+
+
+The best resource for programmers to learn R is likely: http://adv-r.had.co.nz/
+In the Subsetting and Vocabulary chapters you can quickly find most of the basic syntax and operations to start programming in R. 
+
+The author 'Hadley Wickham' is a well known R developer, he spends most of his development work making R more accessible and syntax-standardized. He and his team have developed many data manipulation and graphics packages, and in this course we will have a look as some of these.
+
+* With ```CTRL``` + ```ENTER``` you can execute commands from the .Rmd file in RStudio.
+
+## Session 1: Basic operations
+* functions, objects, some syntax
+* generate data with specific distributions
+* read and write
+* data manipulation
+
+
+
+This course is generated in a markdown file. A markdown file allows mixing up of formatted text and code 'chunks'.  
+
+*Click the question mark above 'Quick Reference' to check some of the functionality.* Easy as ```1 + 1 = ``` `r 1 + 1`, right?
+
+*Create a markdown file of your own*
+*Set up the folders*
+
+
+```{r, set up folders, warning = FALSE}
+
+RootFolder <- "D:/leren/consultantR"  # change parent directory as you like
+
+if( !dir.exists( RootFolder )) {
+  dir.create(RootFolder)
+}
+
+setwd( RootFolder )
+
+dir.create( "data" )
+dir.create( "images" )
+dir.create( "scripts" )
+dir.create( "scripts/shiny" )
+
+```
+
+*Save your markdown file in the root folder*
+
+
+## Introduction  
+
+* R: strong foundation in both 'functional programming' and 'object-oriented' programming
+* Programming language with metaprogramming facilities: programming + interactive data analysis functionality + write domain specific code/functions + connection to C, fortran etc.
+
+
+* Main data storage types
+* Function syntax
+
+
+### vectors
+* vectors contain homogenous data
+* 1 dimensional
+
+```{r, vectors}
+
+1:10
+c( 1:10 ) 
+c( 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+c( 1, 2, 3, 4, 5, "6", 7, 8, 9, 10)
+
+my_vector <- 1:10
+my_vector / my_vector 
+2 * my_vector
+my_vector + my_vector
+
+# beware of auto recycling
+
+my_smaller_vector <- 1:5
+my_vector + my_smaller_vector 
+
+
+# only this will warn you:
+
+my_3l_vector <- 1:3
+my_vector + my_3l_vector
+
+# subsetting vector:
+
+my_vector[4]
+my_vector[4:7]
+my_vector[ -(3:6)]
+
+```
+
+### data.frame
+* heterogenous data
+* 2 dimensional
+* most used data object
+* is a list-type with some added functionality and some limitations (same length of lists)
+
+```{r, data.frame}
+
+a_dataframe = data.frame( firstColumn = 1:3,
+                          secondColumn = c("row1", "row2", "row3"))
+a_dataframe
+
+# subsetting data.frame[ row, column ]
+a_dataframe[ , 2 ] # all rows second column
+a_dataframe[ , 2, drop = FALSE]  # # keep the original object type with drop = FALSE
+a_dataframe[ , 'secondColumn']
+a_dataframe[ , c( FALSE, TRUE )]  # vector based subsetting
+a_dataframe[ , c( 1, 2 ) ]
+a_dataframe$firstColumn
+a_dataframe[ a_dataframe$firstColumn == 2,  ]
+a_dataframe[ a_dataframe$firstColumn <= 2,  ]
+
+# each column is a list, functions that work on lists work the same way on the columns of the data.frame:
+# 'list apply'  apply function to each list entry
+lapply( a_dataframe, unique)
+lapply( a_dataframe, class )
+
+# a dataframe with only numeric entries
+a_numric_dataframe = data.frame( numCol1 = 1:10, numCol2 = sample(200:300, 10))
+a_numric_dataframe
+a_numric_dataframe + 1
+a_numric_dataframe^2
+lapply(a_numric_dataframe, function(x) x^2  ) # same as before.
+
+
+```
+
+### matrix
+* for computational intensive calculations
+* for linear algebra
+
+```{r, matrix}
+
+big_matrix = matrix( 1: 100000000, nrow = 1000000, ncol = 100 ) # 100M entries
+format( object.size( big_matrix ), units = 'Mb') 
+# inner product
+
+big_matrix[ 960:989, 40:45 ] # subsetting ( $  and names does not work )
+
+# math/ linear algebra
+big_matrix2 <- big_matrix * 2
+
+?'%*%'
+
+big_matrix3 <- big_matrix / ( big_matrix2 ) + 1
+dim( big_matrix3 )
+big_matrix3[ 1:10, 1:10 ]
+
+rm( "big_matrix", "big_matrix2", "big_matrix3" )
+
+#inner product
+1:10 %*% 1:10
+
+#outer product
+1:10 %o% 1:10
+
+# product
+1:10 * 1:10
+
+```
+
+### array
+* multidimensional matrix
+
+```{r, array}
+some_data <- runif( 100*10*2)
+my_array = array( data =  some_data, dim = c(100, 10, 2) )
+
+my_array[ 1, 1, 1 ]
+my_array[ 100, 1, 1 ]
+my_array[ 1, 1,  ]
+my_array[ 1, , 1  ]
+my_array[ 1, ,   ]
+my_array[ 88, ,   ]
+
+```
+
+
+### lists
+* lists can contain heterogenous data. 
+* lists can contain other data structures/ objects/ functions
+* often used as input and/or output of functions because it can funciton as a container for various types of data
+
+
+```{r, list}
+
+my_list = alist( names = c( "John", "Steve" ) , age = as.vector( 22,44 ) )
+my_list$names
+my_list[1] # outputs object as subset of list
+my_list[[1]] # outputs the object itself
+
+my_list = alist() # define new empty list
+my_list[[1]] <- a_dataframe
+my_list[[2]] <- my_vector
+myParameter <- 5
+my_list[[3]] <- myParameter
+another_list <- list( data = 1:10, name_data = "ten people")
+my_list[[4]] <- another_list
+my_list # That is why a list is usefull as input/output for functions
+
+```
+
+
+### generate data
+
+
+```{r, generate data read & write }
+
+# google: 'R generate names'  
+#install.packages( 'randomNames' ) # install package, only needed once.
+require( randomNames ) # load package, load every r-session you want to use it
+??randomNames # how ? Aha! The ?? is a fuzzy search
+# the single question mark is very specific and used most often.
+
+
+# make a dataframe for african woman
+?randomNames
+set.seed(1234) # reproducible sampling of Genders:
+Gender <- sample( c( "Male", "Female" ), 100, replace = TRUE )
+
+my_dataframe_Woman <- data.frame( colAlphabet = sample( letters[ 1:3 ], 100, replace = TRUE ), 
+                            Name = randomNames( n = 100, gender = Gender, ethnicity = 1), 
+                            Ethnicity = "AfricanAmerican",
+                            Gender = Gender,
+                            age = round( 
+                                rnorm( 
+                                  100, mean = 40, sd = 10 ), digits = 0 ),
+                            Length = round( runif( 100, min = 155, max = 189 ), digits = 2 )
+)
+
+head( my_dataframe_Woman )
+
+write.table( my_dataframe_Woman, file = paste("data", "my_dataframe_Woman.txt", sep = "/"), sep ="\t", row.names = FALSE)
+
+set.seed(543)
+Gender <- sample( c( "Male", "Female" ), 100, replace = TRUE )
+# make a dataframe for asian men
+my_dataframe_Men <- data.frame( colAlphabet = sample( letters[ 1:3 ], 100, replace = TRUE ) , 
+                            Name = randomNames( n = 100, ethnicity = 3),
+                            Ethnicity = "Asian",
+                            Gender = Gender,
+                            age = round( 
+                                rnorm( 
+                                  100, mean = 40, sd = 10 ), digits = 0 ),
+                            Length = round( runif( 100, min = 156, max = 204 ), digits = 2 )
+)
+
+
+head( my_dataframe_Men)
+write.table( my_dataframe_Men, file = paste("data", "my_dataframe_Men.txt", sep = "/"), sep ="\t", row.names = FALSE)
+# load the data in a list using a loop and combine into 1 dataframe
+
+load.list = alist()
+my.files <- paste( 'data', dir('data'), sep ='/' )
+
+for( i in seq_along( my.files )) {
+  
+  load.list[[ i ]] <- read.delim( file= my.files[ i ] , sep = "\t" )
+  
+}
+
+my_dataframe <- do.call( 'rbind', load.list ) # rbind the lists into a dataframe
+my_dataframe[1:10,]
+
+# we already used alot of built-in functions, and also the randomNames function from the loaded package:
+?sample
+?round
+?rnorm
+?randomNames # this function has the same name as the package
+?head
+
+# we also used some R objects:
+?letters
+?data.frame
+
+
+# depending of the object type, secific methods on those objects are called, if implemented.
+
+plot( my_vector )
+
+plot(my_dataframe, col = as.factor( my_dataframe$Length > 200 ) )
+
+
+```
+
+
+### generate data distributions
+* For test cases and or demo' s it can handy to be able to generate all kinds of data distributions
+* base-R has several, such as use of sample(), ```runif()``` (random uniform), ```rnorm()``` (random normal), ```rbinom()``` (binomial), ```rpois()``` (poison)  
+* also various packages exist that can generate specific (e.g. skewed) distributions of data  
+* there are many example datasets available, in base-r and in packages, e.g. try ```mtcars```  
+
+
+For any type of statistics (mean, variance, outlier detection, regression, etc) the data scientist must always be aware of the distribution
+
+```runif``` equal probability of outcomes independant of the value  
+for example throwing a die, the outcomes 1 through 6 have a runif distribution 
+```{r, runif}
+plot( density( runif( 1000, min = 1 , max = 6 ) ) ) 
+hist( runif( 1000, min = 1 , max = 6 ) ) # likely a better method in this case
+
+```
+
+```rnorm``` naturally occuring distribution for many phenoma where the probability is highest around the mean and lower at the sides  
+for example weight of a population
+```{r, rnorm}
+plot( density( rnorm( 1000, mean = 80 , sd = 10 ) ) )
+
+```
+
+```rbinom``` when there are two possible outcomes and one counts the number of occurences of the outcomes (chance of multiple succesive identical outcomes decreases)
+```{r, rbinom}
+plot( ( rbinom( 1000, size = 1, prob = 0.5 ) ) )
+plot( density( rbinom( 1000, size = 1, prob = 0.5 ) ) )
+
+plot( density( rbinom( 1000, size = 1, prob = 0.1 ) ) )
+
+plot( density( rbinom( 10000, size = 6, prob = 0.3 ) ) ) # the chance for 6 succesive events with probability 0.3 is very small
+
+
+```
+
+```rpois``` chance of a fixed number of events in a given interval   
+for example length of a line of people, or how long people have to wait certain time amounts at a bus station when they arive randomly (don' t check 9292ov.nl)  
+```{r, rpois}
+
+plot(density ( rpois( 1000, lambda = 5 ),bw = 0.1 )  ) # you expect 5 occurrences in your defined interval. The poison assumption tells you the occurrences of surrounding occurrences
+
+```
+
+### Example datasets   
+* Instead of generating your own data, there are many datasets available within R and R-packages
+
+```{r }
+
+data() # available/installed datasets
+
+mtcars
+?mtcars
+summary( mtcars )
+plot( mtcars )
+boxplot( mtcars)
+boxplot( scale ( mtcars ) )
+
+```
+
+
+
+### R is built around functions
+* scoping: within functions is searched first, if none is found global variables are searched
+* Open a new R Script (File -> New File -> R Script)
+* Write the following function in it and save as weeksOld.R in your working directory
+
+```{r, r-script function}
+# Write the following in the .R file:
+
+
+weeksOld <- function( Birth_date ) {
+  Nweeks = alist()  
+    Nweeks$WeeksAge <- difftime( Sys.Date(), as.Date( Birth_date, format = "%Y-%m-%d" ), units = "weeks"  )
+    Nweeks$Today <- Sys.Date()
+    Nweeks$Born <- Birth_date
+    Nweeks$call <- call("as.Date", as.Date(Birth_date, format = "%Y-%m-%d" ) )
+return( Nweeks )
+}
+
+
+
+```
+
+### test our function:
+
+```{r , functions}
+
+source("weeksOld.R")
+
+function_result <- weeksOld( "1980-04-02" )
+
+function_result
+
+# scoping rules of functions
+my_var <- 10
+
+my_fun <- function( x ) {
+  y <- x + my_var
+  return( y )
+}
+my_fun( 1 )
+
+
+my_fun <- function( x ) {
+   my_var = 0
+  y <- x + my_var
+  return( y )
+}
+my_fun( 1 )
+
+
+my_fun <- function( x, my_var ) {
+    y <-   x + my_var
+    my_var = 0
+   return( y )
+  }
+
+
+
+my_fun( 1, 2 )
+
+
+```
+
+### data manipulation
+* base-r has several data managing methods  
+* there are however often better/ easier/ faster/ more concise methods to be found in various packages ( one of the next sessions )
+
+```{r, data manipulation}
+
+# summarize data with aggregate
+
+head(my_dataframe)
+
+aggregate( age ~ Ethnicity + Gender , FUN = mean, data = my_dataframe)
+
+my_dataframe_stack <- stack( x = my_dataframe, select = c( age, Length ) )
+head( my_dataframe_stack )
+# data in long format with base-r function reshape. Difficult to grasp but very flexible
+# easier/ prefered methods from packages in one of next sessions.
+my_dataframe_long <- reshape( my_dataframe,
+         direction = "long",
+         varying =c("age", "Length", "Gender", "Ethnicity", "colAlphabet"),
+         v.names = "value",
+         times =c("age", "Length", "Gender", "Ethnicity", "colAlphabet"),
+         timevar = "Info")
+
+head( my_dataframe_long )
+
+
+```
+
+
+### Outlier detection
+
+```{r, preview outlier detection }
+# dataset on flow of river Nile
+# statistical method to detect outliers?
+
+plot(Nile)
+hist(Nile)
+# looks normal distributed so we could try 2*SD?
+
+SD_Nile <- 2* sd(Nile)
+
+Outliers1 <- Nile[ Nile > ( mean( Nile ) + SD_Nile ) | Nile < ( mean( Nile ) - SD_Nile ) ]  # 
+Nile
+plot(Nile)
+
+points(x =  ( 1871:1970)[ Nile %in% Outliers1] , y = Outliers1 , cex =5, col = "red")
+
+# But there is a global trend blowing up the SD at certain locations and underestimating at other locations.
+# Better would be to calculate the values with respect to this trend:
+
+Nile.df <- data.frame( Nile = as.numeric( Nile ), Time = 1871:1970)
+
+lin.fit <- lm( Nile ~ Time + I( Time^2 ), data = Nile.df   ) # fit 2nd degree polynomial model (regression)
+
+lin.fit.s <- summary( lin.fit )
+
+Nile.df$fittedValue <- lin.fit.s$coefficient[ 1 ] + lin.fit.s$coefficient[ 2 ] * Nile.df$Time + lin.fit.s$coefficient[ 3 ] * Nile.df$Time^2
+
+plot( x = Nile.df$Time, y = Nile.df$Nile, pch = 1, col = "blue" )
+
+lines( Nile.df$Time, Nile.df$fittedValue, col = "red" )
+
+# or with the ```predict``` function:
+
+points( x = 1871:1970, y =predict( lin.fit )  , col = "lightblue", cex = 0.5, pch = 'X')
+
+futureTime = data.frame(Time = 1871:2200)
+
+# a 'very accurate' prediction for the year 2200
+
+plot( x = Nile.df$Time, y = Nile.df$Nile, pch = 1, col = "blue" , xlim = c(1871, 2200 ), ylim = c(0,6000))
+points(  x = futureTime$Time, y = predict( lin.fit , newdata = futureTime ), col = 'darkgreen' )
+
+# the residual standard error
+resi.sd <- sqrt( sum( lin.fit.s$residuals^2 ) / ( 98- 1)) 
+
+Outliers2 <- Nile.df$Nile[ abs( lin.fit.s$residuals ) > 2 * resi.sd]
+
+Outliers2
+
+plot(Nile)
+lines( Nile.df$Time, Nile.df$fittedValue, col = "red" )
+points(x =  ( 1871:1970)[ Nile %in% Outliers2] , y = Outliers2 , cex =5, col = "red")
+
+
+```
+
+
+
+
+
+### Exercies session 1
+
+
+1. calculate the maximum length for each age using the ```aggregate``` function  
+2. what is the maximum number of occurences of the age group? ( use ```FUN = length``` )  
+3. write a function in a R-script with:
+*** input1: a ```rnorm``` generated vector of length 100 with mean 3 and sd 2
+*** input2: a ```rnorm``` generated vector of length 100 with mean 7 and sd 3
+*** in the function: put input2 behind input1, plot and perform a regression (pro tip: r functions like data.frames)
+*** output: a plot in png format with the rnorm generated data on the y-axis (and 1:200 on the x axis)
+*** the plot should contain a regression line lm(a~x, data = ...) is linear lm(a~ I(x + x^2 + x^3 + x^4), data = ...) is non a non linear regression )
+tip: ```poly( x, degree = 4 )``` makes the polynomial for you: ``` a ~ poly(x, degree = ...)```
+4. what happens when you increase the degrees of freedom? ( by increasing the polynomial degree )
+
+
+
+
+

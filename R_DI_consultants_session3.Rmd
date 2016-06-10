@@ -1,0 +1,97 @@
+---
+title: "R for DI consultants session 3"
+author: "Steven Wink"
+date: "8 juni 2016"
+output: html_document
+---
+
+
+* With ```CTRL``` + ```ENTER``` you can execute commands from the .Rmd file in RStudio.
+
+# Session 3: syntax & packages
+* S3 vs S4
+* tidy your data with 'tidyr'
+* manipulate your data with 'dplyr'
+
+
+## attributes and accessor functions
+* attributes are metadata to objects/ structures
+** names ```names()```
+** dimensions ```dim()```
+** class ```class()```
+
+* To find out about the attributes use ```attributes()```
+
+```{r, attributes and accessor functions}
+
+a_vector <- c( 1, 2, 3, 3, 3 )
+names( a_vector ) <- c("one", "two", "three", "three", "three")
+a_vector
+# or
+
+also_a_vector <- c( one = 1, two = 2, three = 3, three = 3, three = 3 )
+also_a_vector
+
+identical( a_vector, also_a_vector )
+
+a_vector <- unname( a_vector )
+
+names( also_a_vector ) <- NULL
+
+identical( a_vector, also_a_vector )
+
+
+```
+
+## factors as attribute
+** used to store categorical data
+** the ```class()``` is "factor"
+** the ```levels()``` contains the set of allowed values
+
+* categorical input data is usually required to be in the factor type for statistical functionality.
+* can also be ordered for ordinal type of data
+
+```{r, factors as attribute }
+
+a_data_frame <- data.frame( a_vector = a_vector , also_a_vector = also_a_vector )
+a_data_frame
+#apply to each list entry ( column in the data.frame ), the class function:
+lapply( a_data_frame, class )
+
+a_data_frame <- lapply( a_data_frame, function( x ) x <- factor( x ) )
+
+a_data_frame
+lapply( a_data_frame, class )
+
+# ordered ( ordinal data )
+
+a_data_frame <- lapply( a_data_frame, function( x ) x <- factor( x, levels = c( 3, 2, 1), ordered = TRUE ) )
+
+a_data_frame
+levels( a_data_frame$a_vector )
+
+```
+
+
+## subsetting S4
+** ```@``` is equivalent to ```$```
+** ```slot()``` is equivalent to ```[[```
+
+```{r subsetting S3 and S4 }
+
+
+
+
+
+```
+
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

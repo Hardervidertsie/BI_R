@@ -1,0 +1,73 @@
+---
+title: "R for DI consultants"
+author: "Steven Wink"
+date: "18 mei 2016"
+output: html_document
+---
+
+ 
+**when: Wednesdays 2-3 starting 25th of May**  
+
+
+**Preparation:**  
+
+
+1. install R: https://www.r-project.org/  
+2. install the IDE RStudio: https://www.rstudio.com/
+
+
+# This 5 session course consists of the following topics
+## Session 1: Basic operations
+* functions, objects, some syntax
+* generate data with specific distributions
+* read and write
+* data manipulation
+
+## Session 2: Statistics
+* outlier detection
+* statistical significance of time series
+* principle components
+* a simple prediction model with linear regression
+
+meer detail:
+
+
+### preview next session: outlier detection  
+* normality check  
+* Z- score for normal distributed data  
+* inter quantile range for non-normal distributed data  
+* time courses/ sequential data  
+
+ (plot(Nile))
+head(as.data.frame(Seatbelts))
+
+
+
+
+
+# Session 3: syntax & packages
+* S3 vs S4
+* tidy your data with 'tidyr'
+* manipulate your data with 'dplyr'
+
+# Session 4: web based dashboarding with R
+* shiny 
+* Building an interactive dashboard   
+![](D:\\leren\\consultantR\\images\\shinyExample.jpg)  
+
+
+# Session 5: big data
+* fast data manipulation with 'data.table'
+* how to not run out of memory  
+** RMysql  
+** chunkwise memory management with 'ff' and 'ffbase'  
+** rJava & RCPP integration of R with java or c to reduce bottlenecks   
+
+
+
+datasets:
+?Seatbelts
+?iris
+
+
+

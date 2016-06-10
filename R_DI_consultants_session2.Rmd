@@ -1,0 +1,360 @@
+---
+title: "R for DI consultants"
+author: "Steven Wink"
+date: "01 Juni 2016"
+output: html_document
+---
+  
+
+* With ```CTRL``` + ```ENTER``` you can execute commands from the .Rmd file in RStudio.
+
+## Session 2: Statistics
+* outlier detection
+* statistical significance of time series
+* principle components
+* a simple prediction model with KNN
+
+## Outlier detection
+
+* quantile statistics is non parametric, and is based on the ordering of values.
+
+* Interquantile range is very usefull and simple method for detecting outliers.
+* Usefull in BI for automatic flagging of outliers.
+* Can be assymetric, so normal distribution is not required.
+* quantile statistics is more robust against outliers.
+
+* Interquantile range: IQ_range = upperq - lowerq
+* upper outlier: IQ_range * 1.5 + upperq
+* lower outlier: lowerq - IQ_range * 1.5  
+
+
+
+```{r, outlier detection }
+
+RootFolder <- "D:/leren/consultantR" # change this to your own working directory location
+setwd( RootFolder )
+
+# first create some uniform distributed data
+
+x <- seq( from = -10 , to = 50, length.out = 1000) # sequence of data
+
+set.seed(1234)
+
+y <- sample( 
+      sort( 
+        runif(1000, min = 0, max= 50 ) 
+        ),  
+      prob = c(1:500, 500:1 )/500 , replace = TRUE 
+      ) # creating a bit smaller spreak of values than the normal distribution
+
+hist(y) # show distribution
+
+plot( y ) # plot data 
+
+# so clearly there are no outliers ( statistically )
+# now add 1 real outlier:
+
+y[sample( 1:1000, 2)] <- c( -10, 60 )
+
+# two beautifull outliers:
+hist(y) # show distribution
+plot( y )
+
+# Lets first try the standard deviation:
+
+outlierSdFun <- function( data ) { # define function that calculates the indexes of the outliers
+
+  ind = alist()  
+  leftSide  <- mean( data ) - 2 * sd( data )
+  rightSide <- mean( data ) + 2 * sd( data )
+  ind$left <- data < leftSide
+  ind$right <- data > rightSide
+
+  ind$both <-as.logical( ( ind$left+ ind$right ))
+
+return(ind)
+  
+}
+
+outlierInd <- outlierSdFun( data = y)  # the outlier indexes
+
+plot( x, y )
+points(x[ outlierInd$both ],  y[ outlierInd$both ], col = "red", cex = 1.2 ) # a big nope
+
+
+boxplot( (  y ) )
+points( y=  y[ outlierInd$both ] ,x = rep( 1, length( y[ outlierInd$both ] ) ), col = "red", cex = 1.2 )  # a big nope
+
+
+# now outlier detection using quantile statistics
+
+outlierQFun <- function( data ) { # define function that calculates the indexes of the outliers
+
+  ind = alist()  
+  lowerq  <- quantile( data )[ 2 ] 
+  upperq <- quantile( data )[ 4 ]
+  IQ_range = upperq - lowerq
+  
+  outlier_upper <- 1.5 * IQ_range + upperq
+  outlier_lower <- lowerq - 1.5 * IQ_range
+  
+  ind$left <- data < outlier_lower
+  ind$right <- data > outlier_upper
+  ind$both <-as.logical( ( ind$left+ ind$right ))
+
+return(ind)
+  
+}
+
+outlierIndQ <- outlierQFun( data = y)  # the outlier indexes
+
+plot( x, y )
+points(x[ outlierIndQ$both ],  y[ outlierIndQ$both ], col = "red", cex = 1.2 )
+
+boxplot( (  y ) )
+points( y=  y[ outlierIndQ$both ] ,x = rep( 1, length( y[ outlierIndQ$both ] ) ), col = "blue", cex = 1.5 )  # only these
+
+points( y=  y[ outlierInd$both ] ,x = rep( 1, length( y[ outlierInd$both ] ) ), col = "red", cex = 1.2 )  # only these
+
+
+```
+
+
+## statistical significance of time series
+
+* situation 1: a single time curve & flag when a point in time is an outlier
+* situation 2: multiple time curves, which one is realy different from the others?
+
+
+```{r, statistical significance of time series }
+#install.packages("splines")
+require(splines) # fitting packages
+library(ggplot2)
+library(reshape2)
+# first the same as session 1:
+Nile.df <- data.frame( Nile = as.numeric( Nile ), Time = 1871:1970)
+
+lin.fit <- lm( Nile ~ Time + I( Time^2 ), data = Nile.df   ) # fit 2nd degree polynomial model (regression)
+
+lin.fit.s <- summary( lin.fit )
+
+Nile.df$fittedValue <- lin.fit.s$coefficient[ 1 ] + lin.fit.s$coefficient[ 2 ] * Nile.df$Time + lin.fit.s$coefficient[ 3 ] * Nile.df$Time^2
+
+plot( x = Nile.df$Time, y = Nile.df$Nile, pch = 1, col = "blue" )
+
+lines( Nile.df$Time, Nile.df$fittedValue, col = "red" )
+
+# calculate the mean residual standard error:
+resi.sd <- sqrt( sum( lin.fit.s$residuals^2 ) / ( 98- 1))  # 98 points and 1 less becuase 1 predictor variable
+
+# a new datapoint is collected...
+
+head(Nile.df)
+newYear = 1971
+newFlow = 600
+newFit <- lin.fit.s$coefficient[ 1 ] + lin.fit.s$coefficient[ 2 ] * 1971 + lin.fit.s$coefficient[ 3 ] * 1971^2
+
+is.outlier <- abs( newFit - newFlow ) > 2 * resi.sd
+is.outlier # so yes!
+
+points( newYear, newFlow, col ="red",  pch = 8) # pch is symbol type
+points( newYear, newFlow, col ="red", cex = 2, pch = 1) # cex is scale size
+arrows( newYear, newFlow -100 ,newYear, newFlow  ,col ="pink", cex = 1.5, lw = 3) # because ... now you cant miss the red symbol. lw = line width     
+
+
+# situation 2: multiple time series
+
+# generate a couple of time series with monotonous increase but significant variation
+time = seq( 1, 365, length.out = 25)
+
+timeSeriesData <- data.frame( time = time, 
+                              timeSeries1 = 0.2 * time + 50 * rnorm(25) + (1 + 0.5* rnorm( 25 )) * 0.006 * time^2, # the rnorm term creates the variability within the curves
+                              timeSeries2 = 0.15 * time + 15 * rnorm(25) + (1 + 0.2* rnorm( 25 )) *0.002 * time^2,
+                              timeSeries3 = 0.08 * time + 1 * rnorm(25) + (1 + 0.01* rnorm( 25 )) *0.006 * time^2,
+                              timeSeries4 = 0.15 * time + 40 * rnorm(25) +(1 + 0.2* rnorm( 25 )) * 0.003 * time^2 )
+
+attach(timeSeriesData) # the column names are now global variables
+plot(time, timeSeries1  )
+points( time, timeSeries2, col = "blue")
+points( time, timeSeries3, col = "red")
+points( time, timeSeries4, col = "green")
+
+# generate some more curves
+timeSeries = alist()
+
+for( i in 1:10 ) {
+  timeSeries[[ i ]] = 0.15 * time + 15 * rnorm(25) + (1 + 0.2* rnorm( 25 )) *0.002 * time^2
+  
+  }
+timeSeries <- do.call( 'cbind',timeSeries )
+colnames( timeSeries ) <- paste( "timeSeries", 5: 14, sep ="" )
+
+timeSeriesData <- cbind(timeSeriesData, timeSeries)
+head(timeSeriesData) 
+
+# the time points for the 4 curves are the same, if not ( as is often the case ) - then one would typically fit a function and sample this at equidistant time intervals. The residuals could then be used to retain information of variation within the curves.
+
+# We apply a straightforward strategy:
+# 1) calculate the mean and sd at each time point of all the curves.
+# 2) for each individual curve calculate the sd-normalized distance per time point from the mean.
+# 3) calculate the mean absoluut differences over time for each curve
+# 4) perform a one or two sided t-test, depending on the question asked.
+
+timeSeriesData$Mean <- rowMeans( timeSeriesData[ , -1 ] )
+
+timeSeriesData$SD <- apply( timeSeriesData[ , -1 ], MARGIN = 1, FUN = sd )  # there is no rowSD function in base-r. There are very usefull packages that handle this (next sessions)
+
+# fit a model through each time series to extract the mean residual standard errors:
+
+# split the dataframe columns in a list
+
+timeSeriesList <- lapply( timeSeriesData , "[") # lapply performs operations on each list entry, "[" is a selection operator
+timeSeriesList$time <- NULL # remove some not needed columns 
+timeSeriesList$Mean <- NULL
+timeSeriesList$SD <- NULL
+
+
+timeSeq <- timeSeriesData$time
+
+fit_results = alist()
+df = 4
+for ( i in seq_along(timeSeriesList)){
+  
+  tmp_fit <- lm( timeSeriesList[[i]] ~ ns( timeSeq, df = df ) )
+  
+  fit_results[[i]] = data.frame( timeSeries = names(timeSeriesList[i]) ,
+                                time = timeSeq, 
+                                 series = timeSeriesList[[i]], 
+                                 mod = predict( tmp_fit ), 
+                                 resid = sqrt( sum( tmp_fit$residuals^2 ) )/ (25 - 1)  )
+ rm("tmp_fit")
+}
+
+head(fit_results[[1]])
+
+fit_results <- do.call("rbind", fit_results)
+
+# for plotting need long data format
+head(fit_results)
+fit_results.l <- melt( fit_results, id.vars = c( "time", "resid", "timeSeries")) # name the headers that are not formatted to long-data format (melt is from reshape2 package)
+
+ggplot( data = fit_results.l, aes( x =  time, y = value, color = variable ) ) + geom_point() + facet_wrap(~timeSeries)
+
+
+
+head(fit_results)
+# calculate sd normalized distance to mean:
+head(timeSeriesData)
+
+# each time series has there own mean residual standard error:
+attach( timeSeriesData )
+SD
+
+SD_matrix <- dcast( time ~ timeSeries, data = fit_results , value.var = "resid") # for each time point a row and eacht series a column, possible with e.g. dcast
+head(SD_matrix)
+rownames(SD_matrix) <- round(SD_matrix$time, digits = 1 )
+SD_matrix$time <- NULL
+# calculate total standard error 
+head(SD_matrix)
+SD_matrix_total <- sqrt( SD_matrix^2 + SD^2 ) / (25 - 1)  # note the SD is recycled over the columns
+
+timeSeriesData_dist <- abs( timeSeriesData[ , !colnames(timeSeriesData)  %in%  c("time", "Mean", "SD" )] - Mean ) / ( SD_matrix )# the Mean and SD SDres was made global by the attach
+
+meanDist <- colMeans( timeSeriesData_dist )
+
+sign_result = alist()
+for( i in seq_along( meanDist ) ){ 
+  
+  outBuffer <- t.test( meanDist, mu = meanDist[ i ])
+  buffer <- list(timeseries =  names(meanDist[ i ]), pVal = outBuffer$p.value)
+  sign_result[[ i ]] <- buffer
+   }
+
+sign_result <- do.call('rbind', sign_result)
+sign_result
+
+
+
+# lets have a look if this makes sense
+#install.packages( c("ggplot2", "reshape2")
+
+
+
+data_long <- melt(timeSeriesData[ , !colnames(timeSeriesData)  %in%  c( "Mean", "SD" )], id.vars = "time")
+head(data_long)
+
+ggplot( data = data_long, aes( x= time, y = value )) + geom_point( aes( color = variable ) ) + facet_wrap(~variable)
+sign_result
+
+
+
+
+
+```
+
+
+
+
+```{r, principle components}
+head( iris ) # a dataset on measurements of 3 different eye colors ( first classification prediction was performed on this dataset )
+#install.packages( "devtools" )
+library(devtools) # to be able to install from github
+#install_github("ggbiplot", "vqv")  
+library(ggbiplot) # nice tools for plotting pca
+
+iris.pca <- prcomp( (iris[, -5 ]) , scale. = TRUE)
+
+iris_species <- iris[, 5]
+
+ggbiplot(iris.pca, obs.scale = 1, var.scale = 1, 
+              groups = iris_species, ellipse = TRUE, 
+              circle = TRUE)
+
+
+
+
+```
+
+
+## knn classification 
+
+
+```{r, prediction model with knn }
+#install.packages("class")
+require(class)
+
+head( iris )
+set.seed(555)
+# choose test and training set
+indTrain <- sample(c(TRUE, FALSE), nrow(iris), replace=TRUE, prob=c(0.67, 0.33))
+
+iris_knn <- knn( train = iris[ indTrain, -5], test = iris[ !indTrain, -5 ], cl = iris[ indTrain, 5] )
+
+# how well did we do?
+knnn_result <- data.frame( predict = iris_knn, test =  iris[ !indTrain, 5])
+knnn_result
+conftable <- table( knnn_result)
+conftable
+# total accuary of prediction:
+100 * sum ( diag( conftable ) ) / sum( conftable)
+
+
+```
+
+
+
+## questions  
+
+* Why is the mean residual standard error needed for significance of time series?  
+* plot the natural spline fits with a much higher degree of freedom, what happens and why does this happen?  
+* explain the last line with the 'confusion table' (conftable) - why does this calculate the accuracy?  
+* Calculate the total accuracy of prediction using the entire set as a training and test set  
+* please explain this result  
+
+
+
+
+
+
+
+
